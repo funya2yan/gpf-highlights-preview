@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08182a">
+  <meta name="description" content="GPFの見どころ・カテゴリ概要の文章を確認するツールです。">
+  <title>GPF | 見どころ確認ツール</title>
+  <style>
+    :root {
+      font-family: "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+      color: #192e42;
+      background: #f3f6f9;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    .shell { max-width: 1164px; padding: 38px 22px 60px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.4; }
+    .lead { margin: 0 0 24px; font-size: 14px; color: #5d6f7e; line-height: 1.7; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 519px; gap: 22px; align-items: start; }
+    .card { min-width: 0; background: #fff; border: 1px solid #dbe4eb; border-radius: 10px; overflow: hidden; }
+    .card h2 { margin: 0; padding: 16px 18px; font-size: 17px; border-bottom: 1px solid #e8edf1; }
+    .editor { padding: 18px; overflow-x: auto; }
+    /* 入力欄の表示幅と組版を右の概要本文に完全に揃える。
+       519px - 左右18pxのpadding - 左右1pxのborder = 481px */
+    textarea {
+      display: block;
+      width: 519px;
+      height: 458px;
+      resize: none;
+      padding: 15px 18px 17px;
+      border-radius: 7px;
+      border: 1px solid #b9ccd9;
+      background: #fcfdff;
+      color: #172e42;
+      font-family: "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+      font-size: 20px;
+      line-height: 28px;
+      font-weight: 500;
+      letter-spacing: 0;
+      font-synthesis: none;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      overflow-y: auto;
+      scrollbar-width: none;
+      outline: none;
+    }
+    textarea::-webkit-scrollbar { display: none; }
+    textarea:focus { border-color: #3c8cad; box-shadow: 0 0 0 3px #3c8cad24; }
+    .metrics { display: flex; gap: 22px; margin: 14px 0 12px; font-size: 14px; }
+    .metric { color: #506578; }
+    .metric strong { color: #15344c; font-size: 20px; font-variant-numeric: tabular-nums; }
+    .metric.over strong { color: #ba3131; }
+    .status { min-height: 24px; margin: 0 0 15px; font-size: 13px; line-height: 1.5; color: #617386; }
+    .status.ok { color: #197348; }
+    .status.error { color: #b82e2e; }
+    #copyBtn { width: 100%; min-height: 44px; border: none; border-radius: 7px; background: #166080; color: #fff; font-weight: 700; font-size: 14px; }
+    #copyBtn:hover:not(:disabled) { background: #114f6b; }
+    #copyBtn:focus-visible { outline: 3px solid #74c5e6; outline-offset: 3px; }
+    .preview-card { width: 100%; }
+    .preview-box {
+      /* 入力欄と同じ本文有効幅 481px */
+      width: 519px; height: 492px; padding: 15px 18px 17px;
+      background: #102a43; color: #e0e9f0;
+      overflow: hidden; border: 1px solid rgba(112,166,201,.36);
+      font-family: "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+      font-synthesis: none;
+    }
+    .preview-box h3 { margin: 0 0 11px; font-size: 17px; line-height: 26px; font-weight: 700; letter-spacing: .3px; color: #a6c0d3; }
+    #summaryText {
+      width: 100%; max-height: 420px; overflow: hidden;
+      font-size: 20px; line-height: 28px; font-weight: 500;
+      letter-spacing: 0; white-space: pre; tab-size: 4;
+    }
+    #summaryText.placeholder { color: #7893a8; }
+    .preview-box.invalid { border-color: #e06d6d; }
+    /* textareaと同じCSSでブラウザ標準の折り返し位置を測定する。 */
+    #measureMirror {
+      position: fixed;
+      top: -99999px;
+      left: -99999px;
+      visibility: hidden;
+      box-sizing: border-box;
+      width: 519px;
+      padding: 15px 18px 17px;
+      border: 1px solid transparent;
+      font-family: "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+      font-size: 20px;
+      line-height: 28px;
+      font-weight: 500;
+      letter-spacing: 0;
+      font-synthesis: none;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      tab-size: 4;
+    }
+    @media (max-width: 1040px) {
+      .workspace { grid-template-columns: 1fr; }
+      .preview-card { max-width: 521px; }
+    }
+    @media (max-width: 580px) {
+      .shell { padding: 24px 12px 32px; }
+      h1 { font-size: 22px; }
+      .preview-scroll { overflow-x: auto; }
+      textarea { height: 458px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>GPF 見どころ確認ツール</h1>
+    <p class="lead">250文字以内・最大15行（空行含む）。文章は表示幅に合わせて自動改行されます。</p>
+    <div class="workspace">
+      <section class="card" aria-labelledby="inputHeading">
+        <h2 id="inputHeading">文章を入力</h2>
+        <div class="editor">
+          <textarea id="inputText" aria-label="見どころ・カテゴリ概要" placeholder="見どころやカテゴリの説明を入力してください。"></textarea>
+          <div class="metrics">
+            <div class="metric" id="charsMetric">文字数 <strong id="charCount">0</strong> / 250</div>
+            <div class="metric" id="linesMetric">行数 <strong id="lineCount">0</strong> / 15</div>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite">文章を入力してください。</p>
+          <button type="button" id="copyBtn" disabled>自動改行を含めてコピー</button>
+        </div>
+      </section>
+      <section class="card preview-card" aria-labelledby="previewHeading">
+        <h2 id="previewHeading">表示プレビュー</h2>
+        <div class="preview-scroll">
+          <div class="preview-box" id="previewBox">
+            <h3>見どころ・カテゴリ概要</h3>
+            <div id="summaryText" class="placeholder">入力した文章がここに表示されます。</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div id="measureMirror" aria-hidden="true"></div>
+  <script>
+    'use strict';
+    const MAX_CHARS = 250;
+    const MAX_LINES = 15;
+    const input = document.getElementById('inputText');
+    const summary = document.getElementById('summaryText');
+    const previewBox = document.getElementById('previewBox');
+    const measureMirror = document.getElementById('measureMirror');
+    const charCount = document.getElementById('charCount');
+    const lineCount = document.getElementById('lineCount');
+    const charsMetric = document.getElementById('charsMetric');
+    const linesMetric = document.getElementById('linesMetric');
+    const status = document.getElementById('status');
+    const copyBtn = document.getElementById('copyBtn');
+    let copyContent = '';
+
+    // 入力欄と同じ組版でブラウザが実際に改行する位置を取得する。
+    // 単純な文字幅計算では、句読点や英単語で折り返しがずれるため使わない。
+    function wrapText(source) {
+      const rows = [];
+      for (const paragraph of source.split('\n')) {
+        if (!paragraph) {
+          rows.push('');
+          continue;
+        }
+        measureMirror.textContent = paragraph;
+        const node = measureMirror.firstChild;
+        let lineTop = null;
+        let line = '';
+        let offset = 0;
+        for (const char of Array.from(paragraph)) {
+          const range = document.createRange();
+          range.setStart(node, offset);
+          offset += char.length; // サロゲートペアにも対応
+          range.setEnd(node, offset);
+          const y = Math.round(range.getBoundingClientRect().top * 2) / 2;
+          if (lineTop !== null && y !== lineTop) {
+            rows.push(line);
+            line = '';
+          }
+          lineTop = y;
+          line += char;
+        }
+        rows.push(line);
+      }
+      return rows.join('\n');
+    }
+
+    function update() {
+      const source = input.value.replace(/\r\n?/g, '\n');
+      const count = Array.from(source.replace(/\n/g, '')).length;
+      const wrapped = source ? wrapText(source) : '';
+      const rows = wrapped ? wrapped.split('\n') : [];
+      const lineTotal = rows.length;
+      const validWidth = true; // 同じ幅・フォントのDOMで折り返すため横幅は一致する
+      const valid = source !== '' && count <= MAX_CHARS && lineTotal <= MAX_LINES && validWidth;
+      copyContent = valid ? wrapped : '';
+
+      summary.textContent = wrapped || '入力した文章がここに表示されます。';
+      summary.classList.toggle('placeholder', source === '');
+      previewBox.classList.toggle('invalid', source !== '' && !valid);
+      charCount.textContent = count;
+      lineCount.textContent = lineTotal;
+      charsMetric.classList.toggle('over', count > MAX_CHARS);
+      linesMetric.classList.toggle('over', lineTotal > MAX_LINES);
+      copyBtn.disabled = !valid;
+      status.className = 'status' + (source ? (valid ? ' ok' : ' error') : '');
+
+      if (!source) status.textContent = '文章を入力してください。';
+      else if (valid) status.textContent = '表示OK：この文章をコピーできます。';
+      else {
+        const messages = [];
+        if (count > MAX_CHARS) messages.push('文字数が' + (count - MAX_CHARS) + '文字超過');
+        if (lineTotal > MAX_LINES) messages.push('行数が' + (lineTotal - MAX_LINES) + '行超過');
+        status.textContent = '表示NG：' + messages.join('／');
+      }
+      window.__gpfPreviewResult = { count, lineTotal, wrapped, valid };
+    }
+
+    async function copyText() {
+      if (!copyContent) return;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(copyContent);
+        } else {
+          // ローカルのHTMLを直接開いたときのフォールバック。
+          const temporary = document.createElement('textarea');
+          temporary.value = copyContent;
+          temporary.style.position = 'fixed';
+          temporary.style.opacity = '0';
+          document.body.appendChild(temporary);
+          temporary.select();
+          const copied = document.execCommand('copy');
+          temporary.remove();
+          if (!copied) throw new Error('copy failed');
+        }
+        copyBtn.textContent = 'コピーしました';
+      } catch (error) {
+        copyBtn.textContent = 'コピーできませんでした';
+      }
+      window.setTimeout(() => { copyBtn.textContent = '自動改行を含めてコピー'; }, 1800);
+    }
+
+    input.addEventListener('input', update);
+    copyBtn.addEventListener('click', copyText);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
+    update();
+  </script>
+</body>
+</html>
